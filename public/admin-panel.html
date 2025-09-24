@@ -384,35 +384,63 @@
         }
 
         // فراخوانی API
-        async function apiCall(action, data = {}) {
-            if (!getPassword()) return null;
+       // در public/admin-panel.html - بخش apiCall رو اینطور اصلاح کن:
+async function apiCall(action, data = {}) {
+    if (!PASSWORD) {
+        PASSWORD = prompt('لطفاً رمز ورود پنل مدیریت را وارد کنید:');
+        if (!PASSWORD) return null;
+    }
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        action, 
-                        data, 
-                        password: PASSWORD 
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`خطای سرور: ${response.status}`);
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                action, 
+                data, 
+                password: PASSWORD 
+            })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+            // مدیریت خطاهای مختلف
+            let errorMessage = `خطای سرور: ${response.status}`;
+            
+            if (result && result.error) {
+                errorMessage = result.error;
+                if (result.message) {
+                    errorMessage += ` - ${result.message}`;
                 }
-                
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('API Error:', error);
-                showStatus('error', `خطا در ارتباط با سرور: ${error.message}`, 'global');
-                return null;
             }
+            
+            throw new Error(errorMessage);
         }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('API Error:', error);
+        
+        // نمایش خطا به کاربر
+        let userMessage = error.message;
+        if (error.message.includes('401')) {
+            userMessage = 'رمز عبور اشتباه است! لطفاً دوباره وارد کنید.';
+            PASSWORD = null; // پاک کردن رمز برای درخواست مجدد
+        } else if (error.message.includes('400')) {
+            userMessage = 'داده‌های ارسالی نامعتبر است.';
+        } else if (error.message.includes('500')) {
+            userMessage = 'خطای داخلی سرور. لطفاً稍后再试.';
+        }
+        
+        showStatus('error', userMessage, 'global');
+        return null;
+    }
+}
 
         // نمایش وضعیت
         function showStatus(type, message, tab = 'global') {

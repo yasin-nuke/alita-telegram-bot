@@ -1,112 +1,214 @@
-// pages/api/admin.js - نسخه ساده‌شده
+// pages/api/admin.js
 import { loadDatabase, saveDatabase } from '../../lib/database';
 
 export default async function handler(req, res) {
-  console.log('🔧 Admin API Called - Method:', req.method);
-  
+  // اضافه کردن CORS برای جلوگیری از خطاهای مرورگر
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
   }
 
   try {
     const { action, data, password } = req.body;
-    console.log('📦 Request Body:', { action, data: data ? 'exists' : 'empty' });
-    
-    // احراز هویت ساده‌شده
-    const expectedPassword = process.env.ADMIN_PASSWORD;
-    if (!expectedPassword) {
-      console.error('❌ ADMIN_PASSWORD not set in environment');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-    
-    if (!password || password !== expectedPassword) {
-      console.log('❌ Authentication failed');
-      return res.status(401).json({ error: 'Unauthorized' });
+
+    // لاگ برای دیباگ
+    console.log('🔄 Admin Action:', { action, data: data || 'no-data' });
+
+    // بررسی وجود body
+    if (!req.body) {
+      return res.status(400).json({
+        success: false,
+        error: 'Request body is missing'
+      });
     }
 
-    console.log('✅ Authentication successful');
-    
+    // احراز هویت
+    if (!password) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password is required'
+      });
+    }
+
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid password'
+      });
+    }
+
     // بارگذاری دیتابیس
     let db;
     try {
       db = loadDatabase();
-      console.log('📊 Database loaded successfully');
     } catch (dbError) {
-      console.error('❌ Database load error:', dbError);
-      return res.status(500).json({ error: 'Database error' });
+      console.error('Database load error:', dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to load database'
+      });
     }
 
+    // مقداردهی اولیه اگر وجود نداشته باشد
+    db.students = db.students || [];
+    db.classes = db.classes || [];
+    db.settings = db.settings || {};
+    db.settings.permissions = db.settings.permissions || {};
+
     // پردازش action‌ها
+    let result;
     switch (action) {
       case 'getData':
-        console.log('📥 Get Data request');
+        result = { data: db };
         break;
 
       case 'updatePermissions':
-        console.log('⚙️ Update Permissions:', data);
-        if (data && typeof data === 'object') {
-          db.settings = db.settings || {};
-          db.settings.permissions = {
-            ...(db.settings.permissions || {}),
-            ...data
-          };
+        if (!data || typeof data !== 'object') {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid permissions data'
+          });
         }
+        db.settings.permissions = { ...db.settings.permissions, ...data };
+        result = { message: 'Permissions updated successfully' };
         break;
 
       case 'addStudent':
-        console.log('👥 Add Student:', data);
-        db.students = db.students || [];
-        db.students.push({
+        if (!data || !data.firstName || !data.lastName) {
+          return res.status(400).json({
+            success: false,
+            error: 'First name and last name are required'
+          });
+        }
+        
+        const newStudent = {
           id: Date.now(),
-          ...data,
+          firstName: data.firstName.trim(),
+          lastName: data.lastName.trim(),
+          studentCode: data.studentCode || '',
+          nationalCode: data.nationalCode || '',
           active: true
-        });
+        };
+        
+        db.students.push(newStudent);
+        result = { 
+          message: 'Student added successfully',
+          student: newStudent 
+        };
+        break;
+
+      case 'deleteStudent':
+        if (!data || !data.id) {
+          return res.status(400).json({
+            success: false,
+            error: 'Student ID is required'
+          });
+        }
+        
+        const initialLength = db.students.length;
+        db.students = db.students.filter(s => s.id !== data.id);
+        
+        if (db.students.length === initialLength) {
+          return res.status(404).json({
+            success: false,
+            error: 'Student not found'
+          });
+        }
+        
+        result = { message: 'Student deleted successfully' };
         break;
 
       case 'addClass':
-        console.log('📚 Add Class:', data);
-        db.classes = db.classes || [];
-        db.classes.push({
+        if (!data || !data.className || !data.day) {
+          return res.status(400).json({
+            success: false,
+            error: 'Class name and day are required'
+          });
+        }
+        
+        const newClass = {
           id: Date.now(),
-          ...data
-        });
+          className: data.className.trim(),
+          instructor: data.instructor || '',
+          day: data.day,
+          time: data.time || '',
+          credits: data.credits || 3
+        };
+        
+        db.classes.push(newClass);
+        result = { 
+          message: 'Class added successfully',
+          class: newClass 
+        };
+        break;
+
+      case 'deleteClass':
+        if (!data || !data.id) {
+          return res.status(400).json({
+            success: false,
+            error: 'Class ID is required'
+          });
+        }
+        
+        const initialClassLength = db.classes.length;
+        db.classes = db.classes.filter(c => c.id !== data.id);
+        
+        if (db.classes.length === initialClassLength) {
+          return res.status(404).json({
+            success: false,
+            error: 'Class not found'
+          });
+        }
+        
+        result = { message: 'Class deleted successfully' };
         break;
 
       default:
-        console.log('❌ Unknown action:', action);
-        return res.status(400).json({ error: 'Invalid action' });
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid action'
+        });
     }
 
-    // ذخیره‌سازی دیتابیس
+    // ذخیره‌سازی دیتابیس (برای action‌هایی که تغییر ایجاد می‌کنند)
     if (action !== 'getData') {
       try {
         const saved = saveDatabase(db);
         if (!saved) {
           throw new Error('Save failed');
         }
-        console.log('💾 Database saved successfully');
       } catch (saveError) {
-        console.error('❌ Database save error:', saveError);
-        return res.status(500).json({ error: 'Save failed' });
+        console.error('Save error:', saveError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to save database'
+        });
       }
     }
 
     // پاسخ موفقیت‌آمیز
-    const response = { 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: db,
-      action: action
-    };
-    
-    console.log('✅ Response sent');
-    res.status(200).json(response);
+      ...result
+    });
 
   } catch (error) {
-    console.error('❌ Admin API Error:', error);
-    res.status(500).json({ 
+    console.error('Admin API Error:', error);
+    res.status(500).json({
+      success: false,
       error: 'Internal server error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message
     });
   }
 }
