@@ -3,7 +3,7 @@ import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.LIARA_API_KEY,
-  baseURL: 'https://ai.liara.ir/api/v1/689b2cb0fb0f69c968ce1cfe',
+  baseURL: 'https://ai.liara.ir/api/v1/68d3e0b0df89ba3c5d67a66e',
 });
 
 export async function callAI(prompt) {
