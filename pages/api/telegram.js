@@ -1,5 +1,5 @@
-import { callAI, getContext, loadDatabase } from '../../../utils/ai';
-import { PROMPTS } from '../../../utils/prompts';
+import { callAI, getContext, loadDatabase } from '../utils/ai';
+import { PROMPTS } from '../utils/prompts';
 
 async function sendTelegramMessage(chatId, text, parseMode = null) {
   const payload = {
