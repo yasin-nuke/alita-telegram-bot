@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>پنل مدیریت آلیتا</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 900px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { 
+            padding: 12px 24px; 
+            background: rgba(255,255,255,0.2); 
+            border-radius: 10px; 
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab.active { background: rgba(255,255,255,0.4); }
+        
+        .form-grid { display: grid; gap: 15px; margin-top: 20px; }
+        input, select, textarea {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.9);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        
+        .data-table {
+            width: 100%;
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-panel">
+        <h1>🎛️ پنل مدیریت آلیتا</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('students')">👥 دانشجویان</div>
+            <div class="tab" onclick="showTab('classes')">📚 کلاس‌ها</div>
+            <div class="tab" onclick="showTab('permissions')">⚙️ دسترسی‌ها</div>
+            <div class="tab" onclick="showTab('send')">📤 ارسال برنامه</div>
+        </div>
+        
+        <!-- تب دانشجویان -->
+        <div id="students-tab" class="tab-content">
+            <h3>مدیریت دانشجویان</h3>
+            <div class="form-grid">
+                <input type="text" id="firstName" placeholder="نام">
+                <input type="text" id="lastName" placeholder="نام خانوادگی">
+                <input type="text" id="studentCode" placeholder="کد دانشجویی">
+                <input type="text" id="nationalCode" placeholder="کد ملی">
+                <button class="btn" onclick="addStudent()">➕ افزودن دانشجو</button>
+            </div>
+            
+            <div id="students-list" style="margin-top: 20px;"></div>
+        </div>
+        
+        <!-- سایر تب‌ها به صورت مشابه -->
+    </div>
+
+    <script>
+        const API_URL = '/api/admin';
+        const PASSWORD = prompt('رمز ورود را وارد کنید:');
+        
+        async function apiCall(action, data = {}) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, data, password: PASSWORD })
+            });
+            return await response.json();
+        }
+        
+        // توابع مدیریت دانشجویان
+        async function addStudent() {
+            const student = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                studentCode: document.getElementById('studentCode').value,
+                nationalCode: document.getElementById('nationalCode').value
+            };
+            
+            await apiCall('addStudent', student);
+            loadStudents();
+        }
+        
+        async function loadStudents() {
+            const data = await apiCall('getData');
+            // نمایش داده‌ها در جدول
+        }
+        
+        // توابع نمایش تب‌ها
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            event.target.classList.add('active');
+        }
+        
+        // بارگذاری اولیه
+        showTab('students');
+    </script>
+</body>
+</html>
