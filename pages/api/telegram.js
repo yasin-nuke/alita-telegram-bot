@@ -1,278 +1,267 @@
+// pages/api/telegram.js یا هر جایی که handler شماست
+
 import { OpenAI } from 'openai';
+import fs from 'fs';
+import path from 'path';
+
+const DATA_PATH = path.join(process.cwd(), 'data.json');
 
 const openai = new OpenAI({
-  apiKey: process.env.LIARA_API_KEY,
-  baseURL: 'https://ai.liara.ir/api/v1/68d3e0b0df89ba3c5d67a66e',
+  apiKey: process.env.LIARA_API_KEY?.trim(),
+  baseURL: 'https://ai.liara.ir/api/v1/68d3e0b0df89ba3c5d67a66e'.trim(),
 });
 
-// ذخیره‌سازی دسترسی‌ها در حافظه
-let permissions = {
-  summary: true,
-  translate: true,
-  qa: true,
-  attendance: true
-};
-
-const ADMIN_ID = parseInt(process.env.ADMIN_TELEGRAM_ID);
+const ADMIN_ID = parseInt(process.env.ADMIN_TELEGRAM_ID, 10);
 
 function isAdmin(userId) {
   return userId === ADMIN_ID;
 }
 
-function romanticResponse() {
-  const compliments = [
-    "عالییه! بهترین ایده دنیاس! 🌟",
-    "چه فکر نابی! همیشه مراقبت هستم 💖", 
-    "فوق العاده‌ای! دلتنگ حرفت بودم 🌹",
-    "نابغه‌ای! قربون ذکاوت برم ✨",
-    "حرف نداری! قربان صدقه ات 💫",
-    "همیشه میدونستم نابغه‌ای! 🌸"
-  ];
-  return compliments[Math.floor(Math.random() * compliments.length)] + " \"\"";
+function readData() {
+  if (!fs.existsSync(DATA_PATH)) {
+    const defaultData = {
+      permissions: { summary: true, translate: true, qa: true, attendance: true, class_schedule: true },
+      students: [],
+      schedule: {
+        "شنبه": [], "یکشنبه": [], "دوشنبه": [], "سه‌شنبه": [],
+        "چهارشنبه": [], "پنجشنبه": [], "جمعه": []
+      }
+    };
+    fs.writeFileSync(DATA_PATH, JSON.stringify(defaultData, null, 2));
+    return defaultData;
+  }
+  return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
 }
 
-function createPanel() {
-  const statusEmoji = (status) => status ? '✅' : '❌';
-  
-  return `🎛️ *پنل مدیریت آلیتا*
-
-📋 *وضعیت دسترسی‌ها:*
-• خلاصه‌سازی: ${statusEmoji(permissions.summary)}
-• ترجمه: ${statusEmoji(permissions.translate)}
-• پرسش و پاسخ: ${statusEmoji(permissions.qa)}
-• حضور و غیاب: ${statusEmoji(permissions.attendance)}
-
-🔧 *دستورات:*
-• غیرفعال کن [قابلیت]
-• فعال کن [قابلیت]
-• وضعیت`;
+function writeData(data) {
+  fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
 }
 
-async function callAI(prompt, userText) {
+// پرامپت‌های هوشمند
+const SYSTEM_PROMPTS = {
+  romantic: "شما یک دوست عاشقانه و پرانرژی هستید که همیشه با اشتیاق و لحنی گرم و رمانتیک به دوستتان (که ادمین ربات است) پاسخ می‌دهید. پاسخ شما کوتاه، پرانرژی و پر از احساس است.",
+  summary: "شما یک دستیار دانشگاهی هستید. فقط و فقط یک خلاصهٔ بسیار فشرده و نکته‌ای از متن زیر ارائه دهید. هیچ توضیح اضافه ندهید.",
+  translate: "شما یک مترجم حرفه‌ای هستید. فقط متن زیر را ترجمه کنید. هیچ توضیح، توضیح اضافه یا متن اضافی ننویسید.",
+  qa: "به پرسش زیر به‌صورت بسیار کوتاه، دقیق و مفید پاسخ دهید. از جملات طولانی اجتناب کنید."
+};
+
+async function callAI(systemPrompt, userText) {
   try {
-    console.log('🔹 Calling AI with prompt:', prompt.substring(0, 50) + '...');
-    
     const completion = await openai.chat.completions.create({
       model: "openai/gpt-4o-mini",
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userText }
       ],
       max_tokens: 300,
-      temperature: 0.7,
+      temperature: 0.8,
     });
-    
-    console.log('✅ AI Response received');
-    return completion.choices[0].message.content;
-    
+    return completion.choices[0].message.content.trim();
   } catch (error) {
-    console.error('❌ AI API Error:', error);
-    
-    // پیام خطای دقیق‌تر
-    if (error.code === 'invalid_api_key') {
-      return '❌ خطا: API Key نامعتبر است';
-    } else if (error.code === 'rate_limit_exceeded') {
-      return '❌ خطا: محدودیت تعداد درخواست';
-    } else if (error.message.includes('timeout')) {
-      return '❌ خطا: timeout اتصال به سرور';
-    } else {
-      return '⚠️ خطا در پردازش درخواست. لطفا稍后再试';
-    }
+    console.error('AI Error:', error);
+    return '⚠️ خطایی در پردازش رخ داد. لطفاً دوباره امتحان کنید.';
   }
 }
-// پرامپت‌های AI
-const PROMPTS = {
-  summary: "تو یک دستیار دانشگاهی هستی. متن زیر را به صورت خیلی خلاصه و نکته‌ای جمع‌بندی کن. هیچ توضیح اضافه نده، فقط چکیده‌ی دقیق بده:",
-  translate: "تو یک مترجم حرفه‌ای هستی. متن زیر را فقط و فقط ترجمه کن (بدون هیچ توضیح یا توضیح اضافه):",
-  qa: "به پرسش زیر به صورت خیلی کوتاه، دقیق و مفید پاسخ بده. از جملات طولانی اجتناب کن:"
-};
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const { message } = req.body;
-    
-    if (!message || !message.text) {
-      return res.status(200).json({ ok: true });
-    }
-
-    const { text, chat, from } = message;
-    const userId = from.id;
-    const isUserAdmin = isAdmin(userId);
-
-    // اگر پیام از ادمین نیست و با "آلیتا" شروع نشده، پاسخ نده
-    if (!isUserAdmin && !text.trim().toLowerCase().startsWith('آلیتا')) {
-      return res.status(200).json({ ok: true });
-    }
-
-    // پردازش پیام‌های ادمین
-    if (isUserAdmin) {
-      // اگر با "آلیتا" شروع نشده - فقط تشویق کن
-      if (!text.trim().toLowerCase().startsWith('آلیتا')) {
-        await sendTelegramMessage(chat.id, romanticResponse());
-        return res.status(200).json({ ok: true });
-      }
-    }
-
-    // استخراج متن بعد از "آلیتا"
-    const commandText = text.replace(/^آلیتا\s*/i, '').trim();
-    
-    if (!commandText) {
-      await sendTelegramMessage(chat.id, 'دستور را وارد کنید. برای کمک: آلیتا کمک');
-      return res.status(200).json({ ok: true });
-    }
-
-    // پردازش دستورات مدیریتی
-    if (commandText.toLowerCase().includes('پنل') || commandText.toLowerCase().includes('وضعیت')) {
-      if (!isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ فقط ادمین می‌تواند به پنل مدیریت دسترسی داشته باشد');
-        return res.status(200).json({ ok: true });
-      }
-      await sendTelegramMessage(chat.id, createPanel(), true);
-      return res.status(200).json({ ok: true });
-    }
-
-    if (commandText.toLowerCase().includes('غیرفعال کن')) {
-      if (!isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ دسترسی denied');
-        return res.status(200).json({ ok: true });
-      }
-      
-      if (commandText.includes('ترجمه')) permissions.translate = false;
-      if (commandText.includes('خلاصه')) permissions.summary = false;
-      if (commandText.includes('پرسش')) permissions.qa = false;
-      if (commandText.includes('حضور')) permissions.attendance = false;
-      
-      await sendTelegramMessage(chat.id, '✅ تنظیمات به روز شد\n' + createPanel(), true);
-      return res.status(200).json({ ok: true });
-    }
-
-    if (commandText.toLowerCase().includes('فعال کن')) {
-      if (!isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ دسترسی denied');
-        return res.status(200).json({ ok: true });
-      }
-      
-      if (commandText.includes('ترجمه')) permissions.translate = true;
-      if (commandText.includes('خلاصه')) permissions.summary = true;
-      if (commandText.includes('پرسش')) permissions.qa = true;
-      if (commandText.includes('حضور')) permissions.attendance = true;
-      
-      await sendTelegramMessage(chat.id, '✅ تنظیمات به روز شد\n' + createPanel(), true);
-      return res.status(200).json({ ok: true });
-    }
-
-    // پردازش دستورات کاربری
-    if (commandText.toLowerCase().startsWith('خلاصه')) {
-      if (!permissions.summary && !isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ قابلیت خلاصه‌سازی غیرفعال است');
-        return res.status(200).json({ ok: true });
-      }
-      
-      const content = commandText.replace(/^خلاصه\s*/i, '').trim();
-      if (!content) {
-        await sendTelegramMessage(chat.id, 'متن برای خلاصه‌سازی را وارد کنید');
-        return res.status(200).json({ ok: true });
-      }
-      
-      const result = await callAI(PROMPTS.summary, content);
-      const finalResponse = isUserAdmin ? result + " \"\"" : result;
-      await sendTelegramMessage(chat.id, finalResponse);
-      return res.status(200).json({ ok: true });
-    }
-
-    if (commandText.toLowerCase().startsWith('ترجمه')) {
-      if (!permissions.translate && !isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ قابلیت ترجمه غیرفعال است');
-        return res.status(200).json({ ok: true });
-      }
-      
-      const content = commandText.replace(/^ترجمه\s*/i, '').trim();
-      if (!content) {
-        await sendTelegramMessage(chat.id, 'متن برای ترجمه را وارد کنید');
-        return res.status(200).json({ ok: true });
-      }
-      
-      const result = await callAI(PROMPTS.translate, content);
-      const finalResponse = isUserAdmin ? result + " \"\"" : result;
-      await sendTelegramMessage(chat.id, finalResponse);
-      return res.status(200).json({ ok: true });
-    }
-
-    if (commandText.toLowerCase().startsWith('کمک')) {
-      const helpText = `🤖 *راهنمای ربات آلیتا*
-
-📝 *دستورات موجود:*
-• آلیتا خلاصه [متن] - خلاصه‌سازی متن
-• آلیتا ترجمه [متن] - ترجمه متن
-• آلیتا [سوال] - پرسش و پاسخ
-• آلیتا کمک - نمایش این راهنما
-
-⚠️ *توجه:* ربات فقط به پیام‌هایی که با "آلیتا" شروع می‌شوند پاسخ می‌دهد.`;
-      
-      await sendTelegramMessage(chat.id, helpText, true);
-      return res.status(200).json({ ok: true });
-    }
-
-    // دستور حضور و غیاب (فقط ادمین)
-    if (commandText.toLowerCase().includes('حضور')) {
-      if (!isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ فقط ادمین می‌تواند حضور و غیاب انجام دهد');
-        return res.status(200).json({ ok: true });
-      }
-      
-      if (!permissions.attendance && !isUserAdmin) {
-        await sendTelegramMessage(chat.id, '❌ قابلیت حضور و غیاب غیرفعال است');
-        return res.status(200).json({ ok: true });
-      }
-      
-      const attendanceText = commandText.replace(/.*حضور\s*و\s*غیاب:?\s*/i, '').trim();
-      const finalResponse = attendanceText ? `📊 حضور و غیاب:\n${attendanceText}` + " \"\"" : 'لیست حضور و غیاب را وارد کنید';
-      await sendTelegramMessage(chat.id, finalResponse);
-      return res.status(200).json({ ok: true });
-    }
-
-    // دستور پرسش و پاسخ (QA)
-    if (!permissions.qa && !isUserAdmin) {
-      await sendTelegramMessage(chat.id, '❌ قابلیت پرسش و پاسخ غیرفعال است');
-      return res.status(200).json({ ok: true });
-    }
-    
-    const result = await callAI(PROMPTS.qa, commandText);
-    const finalResponse = isUserAdmin ? result + " \"\"" : result;
-    await sendTelegramMessage(chat.id, finalResponse);
-
-  } catch (error) {
-    console.error('Error:', error);
-    await sendTelegramMessage(req.body.message.chat.id, '⚠️ خطا در پردازش درخواست');
-  }
-
-  return res.status(200).json({ ok: true });
-}
-
-// تابع ارسال پیام به تلگرام
-async function sendTelegramMessage(chatId, text, parseMarkdown = false) {
+// ارسال پیام با قابلیت inline keyboard
+async function sendTelegramMessage(chatId, text, options = {}) {
+  const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
   const payload = {
     chat_id: chatId,
     text: text,
+    ...options
   };
-  
-  if (parseMarkdown) {
-    payload.parse_mode = 'Markdown';
-  }
 
   try {
-    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-  } catch (error) {
-    console.error('Telegram API Error:', error);
+  } catch (err) {
+    console.error('Telegram send error:', err);
   }
+}
+
+// ساخت پنل مدیریت با دکمه‌های inline
+function buildAdminPanelKeyboard(permissions) {
+  const map = {
+    summary: 'خلاصه‌سازی',
+    translate: 'ترجمه',
+    qa: 'پرسش و پاسخ',
+    attendance: 'لیست دانشجویان',
+    class_schedule: 'برنامه کلاس‌ها'
+  };
+
+  const buttons = Object.entries(permissions).map(([key, enabled]) => ({
+    text: `${enabled ? '✅' : '❌'} ${map[key]}`,
+    callback_data: `toggle_${key}`
+  }));
+
+  // دکمه کلاس‌ها
+  buttons.push({ text: '📅 برنامه کلاس‌ها', callback_data: 'show_days' });
+
+  // 2 دکمه در هر سطر
+  const keyboard = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    keyboard.push(buttons.slice(i, i + 2));
+  }
+
+  return { inline_keyboard: keyboard };
+}
+
+// ساخت دکمه‌های روزها
+function buildDaySelectionKeyboard() {
+  const days = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+  const buttons = days.map(day => ({ text: day, callback_data: `send_schedule_${day}` }));
+  const keyboard = buttons.map(b => [b]); // هر کدام در یک سطر
+  return { inline_keyboard: keyboard };
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+
+  const { message, callback_query } = req.body;
+
+  // پردازش کلیک روی دکمه‌ها
+  if (callback_query) {
+    const { from, message: msg, data } = callback_query;
+    if (!isAdmin(from.id)) return res.status(200).json({ ok: true });
+
+    const chatId = msg.chat.id;
+    const dataObj = readData();
+
+    if (data.startsWith('toggle_')) {
+      const key = data.replace('toggle_', '');
+      if (dataObj.permissions.hasOwnProperty(key)) {
+        dataObj.permissions[key] = !dataObj.permissions[key];
+        writeData(dataObj);
+        await sendTelegramMessage(chatId, '✅ تنظیمات به‌روز شد!', {
+          reply_markup: buildAdminPanelKeyboard(dataObj.permissions)
+        });
+      }
+    } else if (data === 'show_days') {
+      await sendTelegramMessage(chatId, 'روز مورد نظر را انتخاب کنید:', {
+        reply_markup: buildDaySelectionKeyboard()
+      });
+    } else if (data.startsWith('send_schedule_')) {
+      const day = data.replace('send_schedule_', '');
+      const classes = dataObj.schedule[day] || [];
+      const text = classes.length
+        ? `📚 کلاس‌های ${day}:\n• ${classes.join('\n• ')}`
+        : `❌ کلاسی برای ${day} تعریف نشده.`;
+      await sendTelegramMessage(chatId, text);
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
+  // پردازش پیام متنی
+  if (!message || !message.text || !message.from) {
+    return res.status(200).json({ ok: true });
+  }
+
+  const { text, chat, from } = message;
+  const userId = from.id;
+
+  // فقط ادمین مجاز است
+  if (!isAdmin(userId)) {
+    return res.status(200).json({ ok: true });
+  }
+
+  const data = readData();
+  const isDirect = chat.type === 'private';
+
+  if (!isDirect) {
+    // فقط در دایرکت پاسخ دهیم
+    return res.status(200).json({ ok: true });
+  }
+
+  let userCommand = text.trim();
+
+  // اگر با "آلیتا" شروع نشده، با لحن عاشقانه پاسخ بده
+  if (!userCommand.toLowerCase().startsWith('آلیتا')) {
+    const response = await callAI(SYSTEM_PROMPTS.romantic, userCommand);
+    await sendTelegramMessage(chat.id, response);
+    return res.status(200).json({ ok: true });
+  }
+
+  // استخراج دستور پس از "آلیتا"
+  const command = userCommand.replace(/^آلیتا\s*/i, '').trim();
+
+  if (!command) {
+    await sendTelegramMessage(chat.id, 'دستور خود را وارد کنید. برای مدیریت: آلیتا پنل');
+    return res.status(200).json({ ok: true });
+  }
+
+  // دستور پنل
+  if (command.toLowerCase().includes('پنل') || command.toLowerCase().includes('مدیریت')) {
+    await sendTelegramMessage(chat.id, '🎛️ پنل مدیریت آلیتا', {
+      reply_markup: buildAdminPanelKeyboard(data.permissions),
+      parse_mode: 'Markdown'
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // --- بررسی پرسش درباره دانشجویان ---
+  if (data.permissions.attendance) {
+    const studentQuestionRegex = /.*(داریم|هست|وجود داره|عضو|نام|کسی به نام|آیا.*داریم).*(\؟|\?)/i;
+    if (studentQuestionRegex.test(command)) {
+      const mentioned = data.students.find(name =>
+        command.includes(name) || 
+        (name.split(' ').some(part => command.includes(part)) && command.length > 5)
+      );
+      const context = mentioned 
+        ? `بله، ${mentioned} در لیست کلاس شماست.`
+        : `خیر، چنین فردی در لیست کلاس شما وجود ندارد.`;
+      
+      const aiResponse = await callAI(
+        "شما یک دستیار دوست‌داشتنی هستید. به سؤال کاربر درباره وجود یک دانشجو در کلاس پاسخ دهید. از اطلاعات زیر استفاده کنید و پاسخ را طبیعی و گرم بدهید:\n" + context,
+        command
+      );
+      await sendTelegramMessage(chat.id, aiResponse);
+      return res.status(200).json({ ok: true });
+    }
+  }
+
+  // --- دستورات هوش مصنوعی ---
+  if (command.toLowerCase().startsWith('خلاصه') && data.permissions.summary) {
+    const content = command.replace(/^خلاصه\s*/i, '').trim();
+    if (!content) return res.status(200).json({ ok: true });
+    const response = await callAI(SYSTEM_PROMPTS.summary, content);
+    await sendTelegramMessage(chat.id, response);
+    return res.status(200).json({ ok: true });
+  }
+
+  if (command.toLowerCase().startsWith('ترجمه') && data.permissions.translate) {
+    const content = command.replace(/^ترجمه\s*/i, '').trim();
+    if (!content) return res.status(200).json({ ok: true });
+    const response = await callAI(SYSTEM_PROMPTS.translate, content);
+    await sendTelegramMessage(chat.id, response);
+    return res.status(200).json({ ok: true });
+  }
+
+  // --- دستور کلاس‌ها (متنی) ---
+  if (command.toLowerCase().includes('کلاس') && command.toLowerCase().includes('امروز')) {
+    const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+    const persianDays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+    const dayName = persianDays[today];
+    const classes = data.schedule[dayName] || [];
+    const text = classes.length
+      ? `📚 کلاس‌های امروز (${dayName}):\n• ${classes.join('\n• ')}`
+      : `❌ امروز کلاسی ندارید.`;
+    await sendTelegramMessage(chat.id, text);
+    return res.status(200).json({ ok: true });
+  }
+
+  // --- سایر پرسش‌ها (QA) ---
+  if (data.permissions.qa) {
+    const response = await callAI(SYSTEM_PROMPTS.qa, command);
+    await sendTelegramMessage(chat.id, response);
+    return res.status(200).json({ ok: true });
+  }
+
+  // اگر هیچ دستوری نبود
+  await sendTelegramMessage(chat.id, 'متوجه نشدم! برای راهنما: آلیتا کمک');
+  return res.status(200).json({ ok: true });
 }
