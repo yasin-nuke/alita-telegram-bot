@@ -1,6 +1,6 @@
 // pages/api/telegram.js
-import { callAI } from '../utils/ai';
-import { PROMPTS } from '../utils/prompts';
+import { callAI } from '../../utils/ai';
+import { PROMPTS } from '../../utils/prompts';
 import { loadDatabase } from '../../lib/database';
 
 async function sendTelegramMessage(chatId, text) {
