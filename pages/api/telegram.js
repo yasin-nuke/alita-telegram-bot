@@ -53,7 +53,7 @@ async function callAI(prompt, userText) {
     console.log('🔹 Calling AI with prompt:', prompt.substring(0, 50) + '...');
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "openai/gpt-4o-mini",
       messages: [
         { role: "system", content: prompt },
         { role: "user", content: userText }
