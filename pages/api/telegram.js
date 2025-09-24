@@ -1,13 +1,13 @@
-import { callAI, getContext, loadDatabase } from '../utils/ai';
+// pages/api/telegram.js
+import { callAI } from '../utils/ai';
 import { PROMPTS } from '../utils/prompts';
+import { loadDatabase } from '../../lib/database';
 
-async function sendTelegramMessage(chatId, text, parseMode = null) {
+async function sendTelegramMessage(chatId, text) {
   const payload = {
     chat_id: chatId,
     text: text
   };
-  
-  if (parseMode) payload.parse_mode = parseMode;
 
   try {
     await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -20,24 +20,40 @@ async function sendTelegramMessage(chatId, text, parseMode = null) {
   }
 }
 
+function getContext(userId, chatType) {
+  const db = loadDatabase();
+  const isAdmin = userId === db.settings.adminId;
+  const inGroup = chatType === 'group' || chatType === 'supergroup';
+  
+  return {
+    isAdmin,
+    inGroup,
+    permissions: db.settings.permissions || {},
+    data: {
+      students: (db.students || []).filter(s => s.active !== false),
+      classes: db.classes || []
+    }
+  };
+}
+
 function handleAdminCommands(message, context) {
   const text = message.toLowerCase().trim();
   const db = loadDatabase();
 
-  if (text.includes('لیست دانشجو')) {
-    if (db.students.length === 0) return '❌ هنوز دانشجویی ثبت نشده';
+  if (text.includes('لیست دانشجو') || text.includes('دانشجوها')) {
+    if (!db.students || db.students.length === 0) return '❌ هنوز دانشجویی ثبت نشده';
     return `👥 لیست دانشجویان:\n${db.students.map(s => `• ${s.firstName} ${s.lastName} (${s.studentCode})`).join('\n')}`;
   }
 
-  if (text.includes('لیست کلاس')) {
-    if (db.classes.length === 0) return '❌ هنوز کلاسی ثبت نشده';
+  if (text.includes('لیست کلاس') || text.includes('کلاسها')) {
+    if (!db.classes || db.classes.length === 0) return '❌ هنوز کلاسی ثبت نشده';
     return `📚 برنامه کلاسی:\n${db.classes.map(c => `• ${c.className} - ${c.day} ${c.time} - ${c.instructor}`).join('\n')}`;
   }
 
-  if (text.includes('کلاس امروز')) {
+  if (text.includes('کلاس امروز') || text.includes('امروز')) {
     const days = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
     const today = days[new Date().getDay()];
-    const todayClasses = db.classes.filter(c => c.day.includes(today));
+    const todayClasses = (db.classes || []).filter(c => c.day.includes(today));
     
     if (todayClasses.length === 0) return `📅 امروز (${today}) کلاسی ندارید`;
     return `📅 کلاس‌های امروز (${today}):\n${todayClasses.map(c => `• ${c.className} - ${c.time} - ${c.instructor}`).join('\n')}`;
@@ -91,8 +107,7 @@ export default async function handler(req, res) {
     await sendTelegramMessage(chat.id, response + (isAdmin ? ' 💖' : ''));
 
   } catch (error) {
-    console.error('Error:', error);
-    await sendTelegramMessage(req.body.message.chat.id, '⚠️ خطا در پردازش');
+    console.error('Telegram Webhook Error:', error);
   }
 
   return res.status(200).json({ ok: true });

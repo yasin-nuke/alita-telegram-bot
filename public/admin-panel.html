@@ -1,15 +1,22 @@
 <!DOCTYPE html>
-<html dir="rtl">
+<html dir="rtl" lang="fa">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>پنل مدیریت آلیتا</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #333;
         }
         
         .glass-panel {
@@ -19,26 +26,79 @@
             border: 1px solid rgba(255, 255, 255, 0.18);
             padding: 30px;
             margin: 20px auto;
-            max-width: 900px;
+            max-width: 1000px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
         
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            font-size: 2.5rem;
+        }
+        
+        .tabs { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
         .tab { 
             padding: 12px 24px; 
             background: rgba(255,255,255,0.2); 
             border-radius: 10px; 
             cursor: pointer;
             transition: all 0.3s;
+            color: white;
+            border: none;
+            font-size: 16px;
         }
-        .tab.active { background: rgba(255,255,255,0.4); }
         
-        .form-grid { display: grid; gap: 15px; margin-top: 20px; }
+        .tab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .tab.active { 
+            background: rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr;
+            gap: 20px; 
+            margin-top: 20px; 
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         input, select, textarea {
             padding: 12px;
             border: none;
             border-radius: 10px;
             background: rgba(255,255,255,0.9);
+            font-size: 16px;
+            width: 100%;
         }
         
         .btn {
@@ -49,19 +109,116 @@
             color: white;
             cursor: pointer;
             transition: transform 0.3s;
+            font-size: 16px;
+            grid-column: 1 / -1;
         }
-        .btn:hover { transform: translateY(-2px); }
+        
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+        }
         
         .data-table {
             width: 100%;
             background: rgba(255,255,255,0.9);
             border-radius: 10px;
             overflow: hidden;
+            margin-top: 20px;
+            border-collapse: collapse;
         }
+        
         .data-table th, .data-table td {
             padding: 12px;
             text-align: right;
             border-bottom: 1px solid #eee;
+        }
+        
+        .data-table th {
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .data-table tr:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            margin: 0 2px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .edit-btn { background: #4ECDC4; color: white; }
+        .delete-btn { background: #FF6B6B; color: white; }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        
+        .permission-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #4ECDC4;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
@@ -70,43 +227,209 @@
         <h1>🎛️ پنل مدیریت آلیتا</h1>
         
         <div class="tabs">
-            <div class="tab active" onclick="showTab('students')">👥 دانشجویان</div>
-            <div class="tab" onclick="showTab('classes')">📚 کلاس‌ها</div>
-            <div class="tab" onclick="showTab('permissions')">⚙️ دسترسی‌ها</div>
-            <div class="tab" onclick="showTab('send')">📤 ارسال برنامه</div>
+            <button class="tab active" onclick="showTab('students')">👥 دانشجویان</button>
+            <button class="tab" onclick="showTab('classes')">📚 کلاس‌ها</button>
+            <button class="tab" onclick="showTab('permissions')">⚙️ دسترسی‌ها</button>
+            <button class="tab" onclick="showTab('send')">📤 ارسال برنامه</button>
         </div>
         
         <!-- تب دانشجویان -->
-        <div id="students-tab" class="tab-content">
-            <h3>مدیریت دانشجویان</h3>
+        <div id="students-tab" class="tab-content active">
+            <h3>👥 مدیریت دانشجویان</h3>
             <div class="form-grid">
-                <input type="text" id="firstName" placeholder="نام">
+                <input type="text" id="firstName" placeholder="نام دانشجو">
                 <input type="text" id="lastName" placeholder="نام خانوادگی">
                 <input type="text" id="studentCode" placeholder="کد دانشجویی">
                 <input type="text" id="nationalCode" placeholder="کد ملی">
                 <button class="btn" onclick="addStudent()">➕ افزودن دانشجو</button>
             </div>
             
+            <div id="students-status" class="status" style="display: none;"></div>
             <div id="students-list" style="margin-top: 20px;"></div>
         </div>
         
-        <!-- سایر تب‌ها به صورت مشابه -->
+        <!-- تب کلاس‌ها -->
+        <div id="classes-tab" class="tab-content">
+            <h3>📚 مدیریت کلاس‌ها</h3>
+            <div class="form-grid">
+                <input type="text" id="className" placeholder="نام کلاس">
+                <input type="text" id="instructor" placeholder="نام استاد">
+                <select id="classDay">
+                    <option value="">انتخاب روز</option>
+                    <option value="شنبه">شنبه</option>
+                    <option value="یکشنبه">یکشنبه</option>
+                    <option value="دوشنبه">دوشنبه</option>
+                    <option value="سه‌شنبه">سه‌شنبه</option>
+                    <option value="چهارشنبه">چهارشنبه</option>
+                    <option value="پنجشنبه">پنجشنبه</option>
+                    <option value="جمعه">جمعه</option>
+                </select>
+                <input type="text" id="classTime" placeholder="زمان (مثال: 10:00-12:00)">
+                <button class="btn" onclick="addClass()">➕ افزودن کلاس</button>
+            </div>
+            
+            <div id="classes-status" class="status" style="display: none;"></div>
+            <div id="classes-list" style="margin-top: 20px;"></div>
+        </div>
+        
+        <!-- تب دسترسی‌ها -->
+        <div id="permissions-tab" class="tab-content">
+            <h3>⚙️ مدیریت دسترسی‌ها</h3>
+            <div class="permission-toggle">
+                <label>خلاصه‌سازی:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="permission-summary" onchange="updatePermission('summary', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <span id="summary-status">فعال</span>
+            </div>
+            
+            <div class="permission-toggle">
+                <label>ترجمه:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="permission-translate" onchange="updatePermission('translate', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <span id="translate-status">فعال</span>
+            </div>
+            
+            <div class="permission-toggle">
+                <label>پرسش و پاسخ:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="permission-qa" onchange="updatePermission('qa', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <span id="qa-status">فعال</span>
+            </div>
+            
+            <div id="permissions-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- تب ارسال برنامه -->
+        <div id="send-tab" class="tab-content">
+            <h3>📤 ارسال برنامه کلاسی</h3>
+            <div class="form-grid">
+                <select id="sendDay">
+                    <option value="today">امروز</option>
+                    <option value="شنبه">شنبه</option>
+                    <option value="یکشنبه">یکشنبه</option>
+                    <option value="دوشنبه">دوشنبه</option>
+                    <option value="سه‌شنبه">سه‌شنبه</option>
+                    <option value="چهارشنبه">چهارشنبه</option>
+                    <option value="پنجشنبه">پنجشنبه</option>
+                    <option value="جمعه">جمعه</option>
+                </select>
+                <input type="text" id="chatId" placeholder="آیدی چت (اختیاری)">
+                <button class="btn" onclick="sendSchedule()">📤 ارسال برنامه</button>
+            </div>
+            
+            <div id="send-status" class="status" style="display: none;"></div>
+            <div id="schedule-preview" style="margin-top: 20px;"></div>
+        </div>
     </div>
 
     <script>
         const API_URL = '/api/admin';
-        const PASSWORD = prompt('رمز ورود را وارد کنید:');
-        
-        async function apiCall(action, data = {}) {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, data, password: PASSWORD })
-            });
-            return await response.json();
+        let PASSWORD = null;
+        let currentData = null;
+
+        // ابتدا رمز ورود بگیر
+        function getPassword() {
+            if (!PASSWORD) {
+                PASSWORD = prompt('لطفاً رمز ورود پنل مدیریت را وارد کنید:');
+                if (!PASSWORD) {
+                    alert('برای استفاده از پنل باید رمز ورود وارد کنید.');
+                    return false;
+                }
+            }
+            return true;
         }
-        
-        // توابع مدیریت دانشجویان
+
+        // نمایش تب‌ها
+        function showTab(tabName) {
+            // مخفی کردن همه تب‌ها
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // غیرفعال کردن همه دکمه‌ها
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // نمایش تب انتخاب شده
+            const activeTab = document.getElementById(tabName + '-tab');
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            // فعال کردن دکمه مربوطه
+            const activeButton = Array.from(document.querySelectorAll('.tab')).find(btn => 
+                btn.onclick && btn.onclick.toString().includes(tabName)
+            );
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+
+            // بارگذاری داده‌های تب
+            if (tabName === 'students') {
+                loadStudents();
+            } else if (tabName === 'classes') {
+                loadClasses();
+            } else if (tabName === 'permissions') {
+                loadPermissions();
+            } else if (tabName === 'send') {
+                loadSchedulePreview();
+            }
+        }
+
+        // فراخوانی API
+        async function apiCall(action, data = {}) {
+            if (!getPassword()) return null;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        action, 
+                        data, 
+                        password: PASSWORD 
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`خطای سرور: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                showStatus('error', `خطا در ارتباط با سرور: ${error.message}`, 'global');
+                return null;
+            }
+        }
+
+        // نمایش وضعیت
+        function showStatus(type, message, tab = 'global') {
+            const statusElement = document.getElementById(tab + '-status') || 
+                                document.querySelector('.status');
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+                statusElement.style.display = 'block';
+                
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // مدیریت دانشجویان
         async function addStudent() {
             const student = {
                 firstName: document.getElementById('firstName').value,
@@ -115,26 +438,207 @@
                 nationalCode: document.getElementById('nationalCode').value
             };
             
-            await apiCall('addStudent', student);
-            loadStudents();
+            if (!student.firstName || !student.lastName) {
+                showStatus('error', 'نام و نام خانوادگی ضروری است', 'students');
+                return;
+            }
+
+            const result = await apiCall('addStudent', student);
+            if (result && result.success) {
+                showStatus('success', 'دانشجو با موفقیت اضافه شد', 'students');
+                clearStudentForm();
+                loadStudents();
+            }
         }
-        
+
         async function loadStudents() {
-            const data = await apiCall('getData');
-            // نمایش داده‌ها در جدول
+            const result = await apiCall('getData');
+            if (result && result.data) {
+                currentData = result.data;
+                displayStudents(result.data.students || []);
+            }
         }
-        
-        // توابع نمایش تب‌ها
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+        function displayStudents(students) {
+            const container = document.getElementById('students-list');
+            if (students.length === 0) {
+                container.innerHTML = '<p>هنوز دانشجویی ثبت نشده است</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>نام</th>
+                            <th>نام خانوادگی</th>
+                            <th>کد دانشجویی</th>
+                            <th>کد ملی</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(student => `
+                            <tr>
+                                <td>${student.firstName || ''}</td>
+                                <td>${student.lastName || ''}</td>
+                                <td>${student.studentCode || ''}</td>
+                                <td>${student.nationalCode || ''}</td>
+                                <td>
+                                    <button class="action-btn edit-btn" onclick="editStudent(${student.id})">✏️</button>
+                                    <button class="action-btn delete-btn" onclick="deleteStudent(${student.id})">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function clearStudentForm() {
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('studentCode').value = '';
+            document.getElementById('nationalCode').value = '';
+        }
+
+        // مدیریت کلاس‌ها (مشابه دانشجویان)
+        async function addClass() {
+            const classData = {
+                className: document.getElementById('className').value,
+                instructor: document.getElementById('instructor').value,
+                day: document.getElementById('classDay').value,
+                time: document.getElementById('classTime').value
+            };
             
-            document.getElementById(tabName + '-tab').style.display = 'block';
-            event.target.classList.add('active');
+            if (!classData.className || !classData.day) {
+                showStatus('error', 'نام کلاس و روز ضروری است', 'classes');
+                return;
+            }
+
+            const result = await apiCall('addClass', classData);
+            if (result && result.success) {
+                showStatus('success', 'کلاس با موفقیت اضافه شد', 'classes');
+                clearClassForm();
+                loadClasses();
+            }
         }
-        
+
+        async function loadClasses() {
+            const result = await apiCall('getData');
+            if (result && result.data) {
+                displayClasses(result.data.classes || []);
+            }
+        }
+
+        function displayClasses(classes) {
+            const container = document.getElementById('classes-list');
+            if (classes.length === 0) {
+                container.innerHTML = '<p>هنوز کلاسی ثبت نشده است</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>نام کلاس</th>
+                            <th>استاد</th>
+                            <th>روز</th>
+                            <th>زمان</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classes.map(classItem => `
+                            <tr>
+                                <td>${classItem.className || ''}</td>
+                                <td>${classItem.instructor || ''}</td>
+                                <td>${classItem.day || ''}</td>
+                                <td>${classItem.time || ''}</td>
+                                <td>
+                                    <button class="action-btn edit-btn">✏️</button>
+                                    <button class="action-btn delete-btn">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function clearClassForm() {
+            document.getElementById('className').value = '';
+            document.getElementById('instructor').value = '';
+            document.getElementById('classDay').value = '';
+            document.getElementById('classTime').value = '';
+        }
+
+        // مدیریت دسترسی‌ها
+        async function loadPermissions() {
+            const result = await apiCall('getData');
+            if (result && result.data && result.data.settings) {
+                const perms = result.data.settings.permissions || {};
+                document.getElementById('permission-summary').checked = perms.summary !== false;
+                document.getElementById('permission-translate').checked = perms.translate !== false;
+                document.getElementById('permission-qa').checked = perms.qa !== false;
+            }
+        }
+
+        async function updatePermission(permission, value) {
+            const result = await apiCall('updatePermissions', { [permission]: value });
+            if (result && result.success) {
+                showStatus('success', `دسترسی ${permission} ${value ? 'فعال' : 'غیرفعال'} شد`, 'permissions');
+            }
+        }
+
+        // پیش‌نمایش برنامه
+        async function loadSchedulePreview() {
+            const result = await apiCall('getData');
+            if (result && result.data) {
+                displaySchedulePreview(result.data.classes || []);
+            }
+        }
+
+        function displaySchedulePreview(classes) {
+            const container = document.getElementById('schedule-preview');
+            if (classes.length === 0) {
+                container.innerHTML = '<p>هنوز کلاسی برای نمایش وجود ندارد</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <h4>پیش‌نمایش برنامه:</h4>
+                <div style="background: rgba(255,255,255,0.9); padding: 15px; border-radius: 10px;">
+                    ${classes.map(c => `<p>• ${c.className} - ${c.day} ${c.time} - ${c.instructor}</p>`).join('')}
+                </div>
+            `;
+        }
+
+        async function sendSchedule() {
+            const day = document.getElementById('sendDay').value;
+            const chatId = document.getElementById('chatId').value;
+            
+            showStatus('info', 'در حال ارسال...', 'send');
+            // اینجا می‌تونی API ارسال به تلگرام رو اضافه کنی
+        }
+
+        // توابع ویرایش و حذف (ساده شده)
+        function editStudent(id) {
+            alert(`ویرایش دانشجو با ID: ${id} - این قابلیت در نسخه بعدی اضافه خواهد شد`);
+        }
+
+        function deleteStudent(id) {
+            if (confirm('آیا از حذف این دانشجو مطمئن هستید؟')) {
+                apiCall('deleteStudent', { id });
+                loadStudents();
+            }
+        }
+
         // بارگذاری اولیه
-        showTab('students');
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('students');
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+{
+  "students": [
+    {
+      "id": 1758729908963,
+      "firstName": "یاسین",
+      "lastName": "کایدانی",
+      "studentCode": "403600923",
+      "nationalCode": "1870744179",
+      "active": true
+    }
+  ],
+  "classes": [],
+  "settings": {
+    "adminId": 1197975452,
+    "permissions": {
+      "summary": true,
+      "translate": true,
+      "qa": true
+    }
+  }
+}

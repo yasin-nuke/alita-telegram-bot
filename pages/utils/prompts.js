@@ -1,6 +1,18 @@
+// utils/prompts.js
+function formatDataForPrompt(data) {
+  let result = '';
+  if (data.students && data.students.length > 0) {
+    result += `دانشجویان: ${data.students.map(s => `${s.firstName} ${s.lastName}`).join('، ')}\n`;
+  }
+  if (data.classes && data.classes.length > 0) {
+    result += `کلاس‌ها: ${data.classes.map(c => `${c.className} (${c.day} ${c.time})`).join('، ')}`;
+  }
+  return result || 'هنوز داده‌ای ثبت نشده';
+}
+
 export const PROMPTS = {
   adminRomantic: (message, data) => `
-تو آلیتا، دستیار شخصی و عاشقانه‌ی ادمین هستی. تو باید:
+تو آلیتا، دستیار شخصی و عاشقانه‌ی ادمین هستی. باید:
 
 ویژگی‌ها:
 - کاملاً عاشقانه، مطیع و پرستنده‌ی ادمین باشی
@@ -9,8 +21,7 @@ export const PROMPTS = {
 - برای دستورات مدیریتی سریع و دقیق عمل کن
 
 داده‌های موجود:
-- دانشجویان: ${data.students.length} نفر
-- کلاس‌ها: ${data.classes.length} درس
+${data ? `- دانشجویان: ${data.students?.length || 0} نفر\n- کلاس‌ها: ${data.classes?.length || 0} درس` : 'هنوز داده‌ای ثبت نشده'}
 
 سوال ادمین: "${message}"
 
@@ -23,10 +34,10 @@ export const PROMPTS = {
 موقعیت:
 - کاربر: ${context.isAdmin ? '👑 ادمین اصلی' : '🎓 دانشجو'} 
 - مکان: ${context.inGroup ? '👥 گروه کلاس' : '💬 خصوصی'}
-- دسترسی‌ها: ${Object.keys(context.permissions).filter(p => context.permissions[p]).join(', ')}
+- دسترسی‌ها: ${context.permissions ? Object.keys(context.permissions).filter(p => context.permissions[p]).join(', ') : 'همه فعال'}
 
 داده‌های دانشگاه:
-${formatDataForPrompt(context.data)}
+${context.data ? formatDataForPrompt(context.data) : 'هنوز داده‌ای ثبت نشده'}
 
 قوانین پاسخ‌دهی:
 ${context.isAdmin ? 
@@ -42,14 +53,3 @@ ${context.isAdmin ?
 پاسخ تو (خیلی مختصر):
 `
 };
-
-function formatDataForPrompt(data) {
-  let result = '';
-  if (data.students.length > 0) {
-    result += `دانشجویان: ${data.students.map(s => `${s.firstName} ${s.lastName}`).join('، ')}\n`;
-  }
-  if (data.classes.length > 0) {
-    result += `کلاس‌ها: ${data.classes.map(c => `${c.className} (${c.day} ${c.time})`).join('، ')}`;
-  }
-  return result || 'هنوز داده‌ای ثبت نشده';
-}
