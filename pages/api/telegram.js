@@ -60,7 +60,6 @@ async function callAI(prompt, userText) {
       ],
       max_tokens: 300,
       temperature: 0.7,
-      timeout: 10000 // 10 ثانیه timeout
     });
     
     console.log('✅ AI Response received');
