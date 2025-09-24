@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.LIARA_API_KEY,
-  baseURL: 'https://ai.liara.ir/api/v1/689b2cb0fb0f69c968ce1cfe',
+  baseURL: 'https://ai.liara.ir/api/v1/68d3e0b0df89ba3c5d67a66e',
 });
 
 // ذخیره‌سازی دسترسی‌ها در حافظه
@@ -50,6 +50,8 @@ function createPanel() {
 
 async function callAI(prompt, userText) {
   try {
+    console.log('🔹 Calling AI with prompt:', prompt.substring(0, 50) + '...');
+    
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -57,16 +59,28 @@ async function callAI(prompt, userText) {
         { role: "user", content: userText }
       ],
       max_tokens: 300,
-      temperature: 0.7
+      temperature: 0.7,
+      timeout: 10000 // 10 ثانیه timeout
     });
     
+    console.log('✅ AI Response received');
     return completion.choices[0].message.content;
+    
   } catch (error) {
-    console.error('AI Error:', error);
-    return '⚠️ خطا در پردازش درخواست';
+    console.error('❌ AI API Error:', error);
+    
+    // پیام خطای دقیق‌تر
+    if (error.code === 'invalid_api_key') {
+      return '❌ خطا: API Key نامعتبر است';
+    } else if (error.code === 'rate_limit_exceeded') {
+      return '❌ خطا: محدودیت تعداد درخواست';
+    } else if (error.message.includes('timeout')) {
+      return '❌ خطا: timeout اتصال به سرور';
+    } else {
+      return '⚠️ خطا در پردازش درخواست. لطفا稍后再试';
+    }
   }
 }
-
 // پرامپت‌های AI
 const PROMPTS = {
   summary: "تو یک دستیار دانشگاهی هستی. متن زیر را به صورت خیلی خلاصه و نکته‌ای جمع‌بندی کن. هیچ توضیح اضافه نده، فقط چکیده‌ی دقیق بده:",
